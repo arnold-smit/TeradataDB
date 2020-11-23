@@ -1,0 +1,54 @@
+/**********************************************************************************************/
+/* Generic Export job using fast export                                                       */
+/**********************************************************************************************/
+
+USING CHARACTER SET ASCII
+
+DEFINE JOB EXPORT_DELIMITED_FILE
+DESCRIPTION 'Import From Teradata'
+(  
+
+    /******************************************************************************************/
+    /* DEFINE TABLE SCHEMAS                                                                   */
+    /******************************************************************************************/
+
+    DEFINE SCHEMA INPUT_SCHEMA ( <<schema>> );
+
+    /******************************************************************************************/
+    /* DEFINE OPERATORS                                                                       */
+    /******************************************************************************************/
+
+    DEFINE OPERATOR EXPORT_PRODUCER
+    TYPE SELECTOR
+    SCHEMA INPUT_SCHEMA
+    ATTRIBUTES
+    (
+        VARCHAR PrivateLogName = 'export_producer_log',
+        VARCHAR TdpId          = '<<src_database>>',
+        VARCHAR UserName       = '$tdwallet(username)',
+        VARCHAR UserPassword   = '$tdwallet(password)',
+        VARCHAR SelectStmt     = '<<query>>'
+    );
+
+    DEFINE OPERATOR EXPORT_CONSUMER
+    TYPE DATACONNECTOR CONSUMER
+    SCHEMA *
+    ATTRIBUTES
+    (
+        VARCHAR PrivateLogName   = 'export_consumer_log', 
+        VARCHAR FileName         = '<<dest_file>>',
+        VARCHAR Format           = 'Delimited',
+        VARCHAR TextDelimiterHex = '<<sep>>',
+        VARCHAR QuotedData       = 'N',
+        /* VARCHAR IndicatorMode  = 'Y', */
+        VARCHAR OpenMode         = 'Write'
+    );
+  
+    /******************************************************************************************/
+    /* STEPS EXECUTED BY APPLY                                                                */
+    /******************************************************************************************/
+
+    APPLY TO OPERATOR (EXPORT_CONSUMER)
+    SELECT * FROM OPERATOR (EXPORT_PRODUCER);
+
+);

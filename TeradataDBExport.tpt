@@ -1,0 +1,55 @@
+/**********************************************************************************************/
+/* Generic Load job using fast load                                                           */
+/**********************************************************************************************/
+
+USING CHARACTER SET UTF8
+
+DEFINE JOB IMPORT_DELIMITED_FILE  
+DESCRIPTION 'Export Delimited File To Teradata'
+(  
+
+    /******************************************************************************************/
+    /* DEFINE TABLE SCHEMAS                                                                   */
+    /******************************************************************************************/
+
+    DEFINE SCHEMA TABLE_SCHEMA ( <<schema>> );
+
+    /******************************************************************************************/
+    /* DEFINE OPERATORS                                                                       */
+    /******************************************************************************************/
+
+    DEFINE OPERATOR LOAD_PRODUCER
+    TYPE DATACONNECTOR PRODUCER
+    SCHEMA TABLE_SCHEMA
+    ATTRIBUTES
+    (
+        VARCHAR Filename         = '<<src_file>>',
+        VARCHAR Format           = 'Delimited',
+        VARCHAR TextDelimiterHex = '07',
+        VARCHAR QuotedData       = 'N',
+        VARCHAR OpenMode         = 'Read',  
+        VARCHAR DateForm         = 'AnsiDate'
+    );
+
+    DEFINE OPERATOR LOAD_CONSUMER
+    TYPE LOAD
+    SCHEMA *
+    ATTRIBUTES 
+    (  
+        VARCHAR TdpId          = '<<dst_database>>',
+        VARCHAR TargetDatabase = '<<dst_schema>>',
+        VARCHAR TargetTable    = '<<dst_schema>>.<<dst_table>>',
+        VARCHAR UserName       = '$tdwallet(username)',
+        VARCHAR UserPassword   = '$tdwallet(password)',
+        VARCHAR DateForm       = 'AnsiDate'
+    ); 
+    
+    /******************************************************************************************/
+    /* STEPS EXECUTED BY APPLY                                                                */
+    /******************************************************************************************/
+
+    APPLY ('insert into <<dst_schema>>.<<dst_table>> (<<vars>>) values (<<:vars>>);')
+    TO OPERATOR (LOAD_CONSUMER) 
+    SELECT * FROM OPERATOR (LOAD_PRODUCER);
+    
+);
